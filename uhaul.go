@@ -3,15 +3,16 @@ package uhaul
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
+	"errors"
+	"fmt"
 	"strconv"
 	"unicode"
 )
 
-func Pack(format string, vals ...interface{}) []byte {
-	_, sizes := CalcSize(format)
+func Pack(format string, vals ...interface{}) ([]byte, error) {
+	_, sizes, _ := CalcSize(format)
 	if len(sizes) != len(vals) {
-		log.Fatal("argument count mismatch")
+		return nil, errors.New(fmt.Sprintf("pack expected %v for packing (got %v)", len(sizes), len(vals)))
 	}
 
 	data := []byte{}
@@ -38,7 +39,7 @@ func Pack(format string, vals ...interface{}) []byte {
 		}
 		data = append(data, buf.Bytes()...)
 	}
-	return data
+	return data, nil
 }
 
 // for each value n of sizes, splice the source into increments of that size
@@ -51,20 +52,17 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 	return split
 }
 
-// Somehow check if the format string and vals are of the same "length"
-func Unpack(format string, vals []byte) []byte {
-	_, sizes := CalcSize(format)
-	// if byteSize/8 != len(vals) {
-	// 	fmt.Println(len(sizes), len(vals))
-	// 	log.Fatal("argument count mismatch")
-	// }
+func Unpack(format string, vals []byte) ([]byte, error) {
+	sum, sizes, _ := CalcSize(format)
+	if len(vals) != sum {
+		return nil, errors.New(fmt.Sprintf("unpack requires a []byte of length %v", sum))
+	}
 
 	split := splitSlice(vals, sizes)
 
 	data := []byte{}
 	var val byte
 	for _, v := range split {
-
 		// string handling
 		// this only handles strings of length 8 or more
 		if len(v) > 8 {
@@ -81,13 +79,13 @@ func Unpack(format string, vals []byte) []byte {
 			data = append(data, val)
 		}
 	}
-	return data
+	return data, nil
 }
 
 // Returns the size of the format string in bytes,
 // and a slice of the size of the interpreted format identifiers
 // this only handles strings of bytes, not strings of characters
-func CalcSize(format string) (int, []int) {
+func CalcSize(format string) (int, []int, error) {
 	sum := 0
 	argCount := []int{}
 	for i := 0; i < len(format); i++ {
@@ -115,7 +113,7 @@ func CalcSize(format string) (int, []int) {
 
 			s, err := strconv.Atoi(format[i : sPos+i])
 			if err != nil {
-				log.Fatal(err)
+				return 0, nil, err
 			}
 
 			sum += s
@@ -123,5 +121,5 @@ func CalcSize(format string) (int, []int) {
 			argCount = append(argCount, s)
 		}
 	}
-	return sum, argCount
+	return sum, argCount, nil
 }
