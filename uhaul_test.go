@@ -3,25 +3,60 @@ package uhaul
 import "testing"
 
 func TestPack(t *testing.T) {
+	// b'\x01\x00\x02\x00\x03\x00\x00\x00'
+	packed, err := Pack("hhl", 1, 2, 3)
+	if err != nil {
+		t.Fail()
+	}
+
+	sum, _, err := CalcSize("hhl")
+	if err != nil {
+		t.Fail()
+	}
+
+	if len(packed) != sum {
+		t.Fail()
+	}
 }
 
-// func main() {
-// b'\x01\x00\x02\x00\x03\x00\x00\x00'
-// packed := Pack("hhl", 1, 2, 3)
-// fmt.Printf("packed: %x\n", packed)
-// fmt.Println("packed", packed)
+func TestStringUnpack(t *testing.T) {
+	stringSources := []string{
+		"meow",
+		"llama",
+		"Hello, World!",
+	}
 
-// unpacked := Unpack("hhl", packed)
-// fmt.Printf("unpacked: %x\n", unpacked)
-// fmt.Println("unpacked", unpacked)
+	for _, v := range stringSources {
+		packed, err := Pack("256s", v)
+		if err != nil {
+			t.Fail()
+		}
 
-// 	meow := Pack("256s", "meow")
-// 	fmt.Println("meow", meow)
-// 	fmt.Println("meow:", Unpack("256s", meow))
+		unpacked, err := Unpack("256s", packed)
+		if err != nil {
+			t.Fail()
+		}
 
-// 	llama := Pack("I256s", 70, "llama")
-// b'F\x00\x00\x00llama\x00\x00\x00\
-// 70 == F?
-// 	fmt.Println(llama)
-// 	fmt.Println(Unpack("I256s", llama))
-// }
+		for i, v := range packed[:len(v)] {
+			if v != unpacked[i] {
+				t.Fail()
+			}
+		}
+	}
+
+	for _, v := range stringSources {
+		packed, err := Pack("I256s", 70, v)
+		if err != nil {
+			t.Fail()
+		}
+
+		unpacked, err := Unpack("I256s", packed)
+		if err != nil {
+			t.Fail()
+		}
+
+		if packed[0] != unpacked[0] {
+			t.Fail()
+		}
+	}
+}
