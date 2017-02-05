@@ -119,6 +119,8 @@ func CalcSize(format string) (int, []int, error) {
 			sum += s
 			i += sPos
 			argCount = append(argCount, s)
+		default:
+			return 0, nil, errors.New("Unknown formatting verb")
 		}
 	}
 	return sum, argCount, nil
