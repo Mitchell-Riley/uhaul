@@ -12,7 +12,7 @@ import (
 func Pack(format string, vals ...interface{}) ([]byte, error) {
 	_, sizes, _ := CalcSize(format)
 	if len(sizes) != len(vals) {
-		return nil, errors.New(fmt.Sprintf("pack expected %v for packing (got %v)", len(sizes), len(vals)))
+		return nil, fmt.Errorf("pack expected %v for packing (got %v)", len(sizes), len(vals))
 	}
 
 	data := []byte{}
@@ -55,7 +55,7 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 func Unpack(format string, vals []byte) ([]interface{}, error) {
 	sum, sizes, _ := CalcSize(format)
 	if len(vals) != sum {
-		return nil, errors.New(fmt.Sprintf("unpack requires a []byte of length %v", sum))
+		return nil, fmt.Errorf("unpack requires a []byte of length %v", sum)
 	}
 
 	split := splitSlice(vals, sizes)
