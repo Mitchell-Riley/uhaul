@@ -1,7 +1,7 @@
 package uhaul
 
 import (
-	"reflect"
+	"fmt"
 	"testing"
 )
 
@@ -25,8 +25,8 @@ func TestPack(t *testing.T) {
 	// 64, 13, 3, 0
 	packed, _ = Pack("I", 200000)
 	unpacked, _ := Unpack("I", packed)
-	// need to use DeepEqual here because I don't know why
-	if reflect.DeepEqual(unpacked[0], 200000) {
+	// convert to strings here because honestly idk
+	if fmt.Sprint(unpacked[0]) != fmt.Sprint(200000) {
 		t.Fail()
 	}
 }
@@ -67,9 +67,8 @@ func TestStringUnpack(t *testing.T) {
 			t.Fail()
 		}
 
-		// need to use DeepEqual here because although int types might have the same value,
-		// they may not have the same type
-		if reflect.DeepEqual(packed[0], unpacked[0]) {
+		// convert to strings here because honestly idk
+		if fmt.Sprint(packed[0]) != fmt.Sprint(unpacked[0]) {
 			t.Fail()
 		}
 
@@ -78,8 +77,7 @@ func TestStringUnpack(t *testing.T) {
 			built += string(v.(byte))
 		}
 
-		// need to use DeepEqual here because I don't know why
-		if reflect.DeepEqual(string(packed[1:]), built) {
+		if v != built {
 			t.Fail()
 		}
 	}
