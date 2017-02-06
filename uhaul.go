@@ -52,7 +52,7 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 	return split
 }
 
-func Unpack(format string, vals []byte) ([]byte, error) {
+func Unpack(format string, vals []byte) ([]interface{}, error) {
 	sum, sizes, _ := CalcSize(format)
 	if len(vals) != sum {
 		return nil, errors.New(fmt.Sprintf("unpack requires a []byte of length %v", sum))
@@ -60,9 +60,8 @@ func Unpack(format string, vals []byte) ([]byte, error) {
 
 	split := splitSlice(vals, sizes)
 
-	data := []byte{}
-	var val byte
-	for _, v := range split {
+	data := []interface{}{}
+	for i, v := range split {
 		// string handling
 		// this only handles strings of length 8 or more
 		if len(v) > 8 {
@@ -70,13 +69,33 @@ func Unpack(format string, vals []byte) ([]byte, error) {
 				if j == 0x00 {
 					continue
 				}
+				var val byte
 				binary.Read(bytes.NewReader([]byte{j}), binary.LittleEndian, &val)
 				data = append(data, val)
 			}
 		} else {
 			buf := bytes.NewReader(v)
-			binary.Read(buf, binary.LittleEndian, &val)
-			data = append(data, val)
+
+			switch sizes[i] {
+			case 1:
+				var val uint8
+				binary.Read(buf, binary.LittleEndian, &val)
+				data = append(data, val)
+			case 2:
+				var val uint16
+				binary.Read(buf, binary.LittleEndian, &val)
+				data = append(data, val)
+			case 4:
+				var val uint32
+				binary.Read(buf, binary.LittleEndian, &val)
+				data = append(data, val)
+			case 8:
+				var val uint64
+				binary.Read(buf, binary.LittleEndian, &val)
+				data = append(data, val)
+			default:
+				return nil, errors.New("unknown format size")
+			}
 		}
 	}
 	return data, nil
