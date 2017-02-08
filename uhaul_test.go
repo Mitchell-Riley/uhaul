@@ -6,28 +6,47 @@ import (
 )
 
 func TestPack(t *testing.T) {
-	// b'\x01\x00\x02\x00\x03\x00\x00\x00'
-	packed, err := Pack("hhl", 1, 2, 3)
-	if err != nil {
-		t.Fail()
+	testData := [][]interface{}{
+		// b'\x01\x00\x02\x00\x03\x00\x00\x00'
+		{1, 2, 3},
+		{10000, 20000, 30000},
+		// largest uint16, uint16, and uint32
+		{65535, 65535, 4294967295},
+		// struct.pack("I", 200000) == b'@\r\x03\x00'
+		// 64, 13, 3, 0
+		{200000},
 	}
 
-	sum, _, err := CalcSize("hhl")
-	if err != nil {
-		t.Fail()
+	testFormats := []string{
+		"ccc",
+		"hhh",
+		"hhl",
+		"I",
 	}
 
-	if len(packed) != sum {
-		t.Fail()
-	}
+	for i, v := range testData {
+		packed, err := Pack(testFormats[i], v...)
+		if err != nil {
+			t.Fail()
+		}
 
-	// struct.pack("I", 200000) == b'@\r\x03\x00'
-	// 64, 13, 3, 0
-	packed, _ = Pack("I", 200000)
-	unpacked, _ := Unpack("I", packed)
-	// convert to strings here because honestly idk
-	if fmt.Sprint(unpacked[0]) != fmt.Sprint(200000) {
-		t.Fail()
+		sum, _, err := CalcSize(testFormats[i])
+		if err != nil {
+			t.Fail()
+		}
+
+		if len(packed) != sum {
+			t.Fail()
+		}
+
+		unpacked, _ := Unpack(testFormats[i], packed)
+
+		for i, j := range v {
+			// convert to strings here because honestly idk
+			if fmt.Sprint(j) != fmt.Sprint(unpacked[i]) {
+				t.Fail()
+			}
+		}
 	}
 }
 
