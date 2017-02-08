@@ -10,7 +10,11 @@ import (
 )
 
 func Pack(format string, vals ...interface{}) ([]byte, error) {
-	_, sizes, _ := CalcSize(format)
+	_, sizes, err := CalcSize(format)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(sizes) != len(vals) {
 		return nil, fmt.Errorf("pack expected %v for packing (got %v)", len(sizes), len(vals))
 	}
@@ -53,7 +57,11 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 }
 
 func Unpack(format string, vals []byte) ([]interface{}, error) {
-	sum, sizes, _ := CalcSize(format)
+	sum, sizes, err := CalcSize(format)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(vals) != sum {
 		return nil, fmt.Errorf("unpack requires a []byte of length %v", sum)
 	}
@@ -139,7 +147,7 @@ func CalcSize(format string) (int, []int, error) {
 			i += sPos
 			argCount = append(argCount, s)
 		default:
-			return 0, nil, errors.New("Unknown formatting verb")
+			return 0, nil, fmt.Errorf("Unknown formatting verb %v", string(c))
 		}
 	}
 	return sum, argCount, nil
