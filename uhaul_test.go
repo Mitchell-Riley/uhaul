@@ -1,36 +1,26 @@
 package uhaul
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
 func TestPack(t *testing.T) {
-	testData := [][]interface{}{
+	testData := map[string][]interface{}{
 		// b'\x01\x00\x02\x00\x03\x00\x00\x00'
-		{1, 2, 3},
-		{10000, 20000, 30000},
+		"ccc": {1, 2, 3},
+		"hhh": {10000, 20000, 30000},
 		// largest uint16, uint16, and uint32
-		{65535, 65535, 4294967295},
+		"hhl": {65535, 65535, 4294967295},
 		// struct.pack("I", 200000) == b'@\r\x03\x00'
 		// 64, 13, 3, 0
-		{200000},
+		"I": {200000},
 	}
 
-	testFormats := []string{
-		"ccc",
-		"hhh",
-		"hhl",
-		"I",
-	}
-
-	for i, v := range testData {
-		packed, err := Pack(testFormats[i], v...)
+	for k, v := range testData {
+		packed, err := Pack(k, v...)
 		if err != nil {
 			t.Fail()
 		}
 
-		sum, _, err := CalcSize(testFormats[i])
+		sum, _, err := CalcSize(k)
 		if err != nil {
 			t.Fail()
 		}
@@ -39,11 +29,13 @@ func TestPack(t *testing.T) {
 			t.Fail()
 		}
 
-		unpacked, _ := Unpack(testFormats[i], packed)
+		unpacked, err := Unpack(k, packed)
+		if err != nil {
+			t.Fail()
+		}
 
 		for i, j := range v {
-			// convert to strings here because honestly idk
-			if fmt.Sprint(j) != fmt.Sprint(unpacked[i]) {
+			if !compare(j, unpacked[i]) {
 				t.Fail()
 			}
 		}
@@ -73,21 +65,19 @@ func TestStringUnpack(t *testing.T) {
 				t.Fail()
 			}
 		}
-	}
 
-	for _, v := range stringSources {
-		packed, err := Pack("I256s", 70, v)
+		// are pack and unpack perfect inverses?
+		packed, err = Pack("I256s", 70, v)
 		if err != nil {
 			t.Fail()
 		}
 
-		unpacked, err := Unpack("I256s", packed)
+		unpacked, err = Unpack("I256s", packed)
 		if err != nil {
 			t.Fail()
 		}
 
-		// convert to strings here because honestly idk
-		if fmt.Sprint(packed[0]) != fmt.Sprint(unpacked[0]) {
+		if !compare(packed[0], unpacked[0]) {
 			t.Fail()
 		}
 
@@ -96,8 +86,50 @@ func TestStringUnpack(t *testing.T) {
 			built += string(v.(byte))
 		}
 
-		if v != built {
-			t.Fail()
-		}
 	}
+}
+
+// shitty helper function for comparing integer interfaces
+func compare(x, y interface{}) bool {
+	var (
+		w int64
+		z int64
+	)
+
+	switch x.(type) {
+	case int32:
+		w = int64(x.(int32))
+	case int64:
+		w = int64(x.(int64))
+	case int:
+		w = int64(x.(int))
+	case uint8:
+		w = int64(x.(uint8))
+	case uint16:
+		w = int64(x.(uint16))
+	case uint32:
+		w = int64(x.(uint32))
+	default:
+		panic("Unknown type")
+	}
+
+	switch y.(type) {
+	case int32:
+		z = int64(y.(int32))
+	case int64:
+		z = int64(y.(int64))
+	case int:
+		z = int64(y.(int))
+	case uint8:
+		z = int64(y.(uint8))
+	case uint16:
+		z = int64(y.(uint16))
+	case uint32:
+		z = int64(y.(uint32))
+
+	default:
+		panic("Unknown type")
+	}
+
+	return w == z
 }
