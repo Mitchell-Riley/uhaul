@@ -10,6 +10,11 @@ import (
 )
 
 func Pack(format string, vals ...interface{}) ([]byte, error) {
+	alignment, err := alignment(format[0])
+	if err == nil {
+		format = format[1:]
+	}
+
 	_, sizes, err := CalcSize(format)
 	if err != nil {
 		return nil, err
@@ -26,13 +31,13 @@ func Pack(format string, vals ...interface{}) ([]byte, error) {
 
 		switch sizes[i] {
 		case 1:
-			binary.Write(buf, binary.LittleEndian, uint8(v.(int)))
+			binary.Write(buf, alignment, uint8(v.(int)))
 		case 2:
-			binary.Write(buf, binary.LittleEndian, uint16(v.(int)))
+			binary.Write(buf, alignment, uint16(v.(int)))
 		case 4:
-			binary.Write(buf, binary.LittleEndian, uint32(v.(int)))
+			binary.Write(buf, alignment, uint32(v.(int)))
 		case 8:
-			binary.Write(buf, binary.LittleEndian, uint64(v.(int)))
+			binary.Write(buf, alignment, uint64(v.(int)))
 		//string type
 		default:
 			byteCount := sizes[i]
@@ -46,7 +51,20 @@ func Pack(format string, vals ...interface{}) ([]byte, error) {
 	return data, nil
 }
 
-// for each value n of sizes, splice the source into increments of that size
+// returns alignment followed by an error. if the error exists, then
+// an alignment specifier was not given.
+func alignment(format byte) (binary.ByteOrder, error) {
+	switch format {
+	case '<':
+		return binary.LittleEndian, nil
+	case '>', '!':
+		return binary.BigEndian, nil
+	default:
+		return binary.LittleEndian, errors.New("")
+	}
+}
+
+// for each value n in sizes, splice the source into increments of that size
 func splitSlice(source []byte, sizes []int) [][]byte {
 	split := make([][]byte, len(sizes))
 	for i, v := range sizes {
@@ -56,7 +74,15 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 	return split
 }
 
+// if you mix strings and regular data types in the format string,
+// there's currently no way to separate the string data from the other
+// packed data
 func Unpack(format string, vals []byte) ([]interface{}, error) {
+	alignment, err := alignment(format[0])
+	if err == nil {
+		format = format[1:]
+	}
+
 	sum, sizes, err := CalcSize(format)
 	if err != nil {
 		return nil, err
@@ -68,6 +94,7 @@ func Unpack(format string, vals []byte) ([]interface{}, error) {
 
 	split := splitSlice(vals, sizes)
 
+	// something's fishy about this data variable
 	data := []interface{}{}
 	for i, v := range split {
 		// string handling
@@ -78,7 +105,7 @@ func Unpack(format string, vals []byte) ([]interface{}, error) {
 					continue
 				}
 				var val byte
-				binary.Read(bytes.NewReader([]byte{j}), binary.LittleEndian, &val)
+				binary.Read(bytes.NewReader([]byte{j}), alignment, &val)
 				data = append(data, val)
 			}
 		} else {
@@ -87,19 +114,19 @@ func Unpack(format string, vals []byte) ([]interface{}, error) {
 			switch sizes[i] {
 			case 1:
 				var val uint8
-				binary.Read(buf, binary.LittleEndian, &val)
+				binary.Read(buf, alignment, &val)
 				data = append(data, val)
 			case 2:
 				var val uint16
-				binary.Read(buf, binary.LittleEndian, &val)
+				binary.Read(buf, alignment, &val)
 				data = append(data, val)
 			case 4:
 				var val uint32
-				binary.Read(buf, binary.LittleEndian, &val)
+				binary.Read(buf, alignment, &val)
 				data = append(data, val)
 			case 8:
 				var val uint64
-				binary.Read(buf, binary.LittleEndian, &val)
+				binary.Read(buf, alignment, &val)
 				data = append(data, val)
 			default:
 				return nil, errors.New("unknown format size")
