@@ -1,6 +1,9 @@
 package uhaul
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestPack(t *testing.T) {
 	testData := map[string][]interface{}{
@@ -67,26 +70,36 @@ func TestStringUnpack(t *testing.T) {
 		}
 
 		// are pack and unpack perfect inverses?
-		packed, err = Pack("I256s", 70, v)
-		if err != nil {
-			t.Fail()
-		}
-
-		unpacked, err = Unpack("I256s", packed)
-		if err != nil {
-			t.Fail()
-		}
-
-		if !compare(packed[0], unpacked[0]) {
+		if compare(packed[0], unpacked[0]) == false {
 			t.Fail()
 		}
 
 		var built string
-		for _, v := range unpacked[1:] {
+		for _, v := range unpacked {
 			built += string(v.(byte))
 		}
 
+		if built != v {
+			t.Fail()
+		}
 	}
+}
+
+func TestAlignment(t *testing.T) {
+	t.Skip()
+	p, err := Pack(">I", 2032480932)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	record := append([]byte("raymond   "), []byte{0x32, 0x12, 0x08, 0x01, 0x08}...)
+	d, err := Unpack("<10sHHb", record)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(p)
+	fmt.Println(d)
 }
 
 // shitty helper function for comparing integer interfaces
@@ -110,7 +123,7 @@ func compare(x, y interface{}) bool {
 	case uint32:
 		w = int64(x.(uint32))
 	default:
-		panic("Unknown type")
+		fmt.Printf("Unknown type: %T\n", x)
 	}
 
 	switch y.(type) {
@@ -128,7 +141,7 @@ func compare(x, y interface{}) bool {
 		z = int64(y.(uint32))
 
 	default:
-		panic("Unknown type")
+		fmt.Printf("Unknown type: %T\n", x)
 	}
 
 	return w == z
