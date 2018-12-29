@@ -9,6 +9,30 @@ import (
 	"unicode"
 )
 
+// define the standard size of packed values in bytes
+// these can be changed by the user
+var (
+	CHAR  = 1
+	SCHAR = 1
+	UCHAR = 1
+
+	BOOL = 1
+
+	SHORT  = 2
+	USHORT = 2
+
+	INT  = 4
+	UINT = 4
+
+	LONG      = 4
+	ULONG     = 4
+	LONGLONG  = 8
+	ULONGLONG = 8
+
+	FLOAT  = 4
+	DOUBLE = 8
+)
+
 func Pack(format string, vals ...interface{}) ([]byte, error) {
 	endian, err := determineEndianness(format[0])
 	if err == nil {
@@ -144,20 +168,11 @@ func CalcSize(format string) (int, []int, error) {
 	sum := 0
 	argCount := []int{}
 	for i := 0; i < len(format); i++ {
-		switch c := format[i]; {
-		case c == 'c', c == 'b', c == 'B', c == '?':
-			sum += 1
-			argCount = append(argCount, 1)
-		case c == 'h', c == 'H':
-			sum += 2
-			argCount = append(argCount, 2)
-		case c == 'i', c == 'I', c == 'l', c == 'L', c == 'f':
-			sum += 4
-			argCount = append(argCount, 4)
-		case c == 'q', c == 'Q', c == 'd':
-			sum += 8
-			argCount = append(argCount, 8)
-		case unicode.IsNumber(rune(c)):
+		typeSize := mapType(rune(format[i]))
+		sum += typeSize
+		argCount = append(argCount, typeSize)
+
+		if unicode.IsNumber(rune(format[i])) {
 			var sPos int
 			for j, k := range format[i:] {
 				if k == 's' {
@@ -174,9 +189,42 @@ func CalcSize(format string) (int, []int, error) {
 			sum += s
 			i += sPos
 			argCount = append(argCount, s)
-		default:
-			return 0, nil, fmt.Errorf("Unknown formatting verb %v", string(c))
 		}
 	}
 	return sum, argCount, nil
+}
+
+func mapType(r rune) int {
+	switch r {
+	case 'c':
+		return CHAR
+	case 'b':
+		return SCHAR
+	case 'B':
+		return UCHAR
+	case '?':
+		return BOOL
+	case 'h':
+		return SHORT
+	case 'H':
+		return USHORT
+	case 'i':
+		return INT
+	case 'I':
+		return UINT
+	case 'l':
+		return LONG
+	case 'L':
+		return ULONG
+	case 'q':
+		return LONGLONG
+	case 'Q':
+		return ULONGLONG
+	case 'f':
+		return FLOAT
+	case 'd':
+		return DOUBLE
+	}
+
+	return -1
 }
