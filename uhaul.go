@@ -10,7 +10,7 @@ import (
 )
 
 func Pack(format string, vals ...interface{}) ([]byte, error) {
-	alignment, err := alignment(format[0])
+	endian, err := determineEndianness(format[0])
 	if err == nil {
 		format = format[1:]
 	}
@@ -31,13 +31,13 @@ func Pack(format string, vals ...interface{}) ([]byte, error) {
 
 		switch sizes[i] {
 		case 1:
-			binary.Write(buf, alignment, uint8(v.(int)))
+			binary.Write(buf, endian, uint8(v.(int)))
 		case 2:
-			binary.Write(buf, alignment, uint16(v.(int)))
+			binary.Write(buf, endian, uint16(v.(int)))
 		case 4:
-			binary.Write(buf, alignment, uint32(v.(int)))
+			binary.Write(buf, endian, uint32(v.(int)))
 		case 8:
-			binary.Write(buf, alignment, uint64(v.(int)))
+			binary.Write(buf, endian, uint64(v.(int)))
 		//string type
 		default:
 			byteCount := sizes[i]
@@ -51,15 +51,16 @@ func Pack(format string, vals ...interface{}) ([]byte, error) {
 	return data, nil
 }
 
-// returns alignment followed by an error. if the error exists, then
-// an alignment specifier was not given.
-func alignment(format byte) (binary.ByteOrder, error) {
+// returns endian followed by an error. if the error exists, then
+// an endian specifier was not given.
+func determineEndianness(format byte) (binary.ByteOrder, error) {
 	switch format {
 	case '<':
 		return binary.LittleEndian, nil
 	case '>', '!':
 		return binary.BigEndian, nil
 	default:
+		// default to little endian
 		return binary.LittleEndian, errors.New("")
 	}
 }
@@ -78,7 +79,7 @@ func splitSlice(source []byte, sizes []int) [][]byte {
 // there's currently no way to separate the string data from the other
 // packed data
 func Unpack(format string, vals []byte) ([]interface{}, error) {
-	alignment, err := alignment(format[0])
+	endian, err := determineEndianness(format[0])
 	if err == nil {
 		format = format[1:]
 	}
@@ -105,7 +106,7 @@ func Unpack(format string, vals []byte) ([]interface{}, error) {
 					continue
 				}
 				var val byte
-				binary.Read(bytes.NewReader([]byte{j}), alignment, &val)
+				binary.Read(bytes.NewReader([]byte{j}), endian, &val)
 				data = append(data, val)
 			}
 		} else {
@@ -114,19 +115,19 @@ func Unpack(format string, vals []byte) ([]interface{}, error) {
 			switch sizes[i] {
 			case 1:
 				var val uint8
-				binary.Read(buf, alignment, &val)
+				binary.Read(buf, endian, &val)
 				data = append(data, val)
 			case 2:
 				var val uint16
-				binary.Read(buf, alignment, &val)
+				binary.Read(buf, endian, &val)
 				data = append(data, val)
 			case 4:
 				var val uint32
-				binary.Read(buf, alignment, &val)
+				binary.Read(buf, endian, &val)
 				data = append(data, val)
 			case 8:
 				var val uint64
-				binary.Read(buf, alignment, &val)
+				binary.Read(buf, endian, &val)
 				data = append(data, val)
 			default:
 				return nil, errors.New("unknown format size")
