@@ -5,40 +5,54 @@ import (
 	"testing"
 )
 
+var testData = []struct {
+	format   string        // format string needed to pack/unpack
+	packed   []byte        // the data emitted from a Pack
+	unpacked []interface{} // the raw data given to Pack/output of Unpack
+}{
+	// examples from the python documentation
+	{"!hhl", []byte{0, 1, 0, 2, 0, 0, 0, 3}, []interface{}{1, 2, 3}},
+	// {"llh0l", []byte{}, []interface{}{1, 2, 3}},
+
+	// my own examples
+	// "ccc": {1, 2, 3},
+	// "hhh": {10000, 20000, 30000},
+	// // largest uint16, uint16, and uint32
+	// "hhl": {65535, 65535, 4294967295},
+	// // struct.pack("I", 200000) == b'@\r\x03\x00'
+	// // 64, 13, 3, 0
+	// "I": {200000},
+}
+
 func TestPack(t *testing.T) {
-	testData := map[string][]interface{}{
-		// b'\x01\x00\x02\x00\x03\x00\x00\x00'
-		"ccc": {1, 2, 3},
-		"hhh": {10000, 20000, 30000},
-		// largest uint16, uint16, and uint32
-		"hhl": {65535, 65535, 4294967295},
-		// struct.pack("I", 200000) == b'@\r\x03\x00'
-		// 64, 13, 3, 0
-		"I": {200000},
+	for _, v := range testData {
+		packed, err := Pack(v.format, v.unpacked...)
+		if err != nil {
+			fmt.Println(err)
+			t.Fail()
+		}
+
+		// if the packed data does not match the correct slice, then fail
+		for i := range packed {
+			if !compare(packed[i], v.packed[i]) {
+				fmt.Println("packed wrong")
+				t.Fail()
+			}
+		}
 	}
+}
 
-	for k, v := range testData {
-		packed, err := Pack(k, v...)
+func TestUnpack(t *testing.T) {
+	for _, v := range testData {
+		unpacked, err := Unpack(v.format, v.packed)
 		if err != nil {
+			fmt.Println(err)
 			t.Fail()
 		}
 
-		sum, _, err := CalcSize(k)
-		if err != nil {
-			t.Fail()
-		}
-
-		if len(packed) != sum {
-			t.Fail()
-		}
-
-		unpacked, err := Unpack(k, packed)
-		if err != nil {
-			t.Fail()
-		}
-
-		for i, j := range v {
-			if !compare(j, unpacked[i]) {
+		for i := range unpacked {
+			if !compare(unpacked[i], v.unpacked[i]) {
+				fmt.Println("unpacked wrong")
 				t.Fail()
 			}
 		}
