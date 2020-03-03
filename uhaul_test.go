@@ -59,6 +59,24 @@ func TestUnpack(t *testing.T) {
 	}
 }
 
+func TestCalcSize(t *testing.T) {
+	t.Skip()
+	var testData = []struct {
+		format string
+		size   int
+	}{
+		{"ci", 8},
+		{"ic", 5},
+	}
+
+	for _, v := range testData {
+		sum, _, _ := CalcSize(v.format)
+		if sum != v.size {
+			// t.Fail()
+		}
+	}
+}
+
 func TestStringUnpack(t *testing.T) {
 	t.Skip()
 	stringSources := []string{
