@@ -194,7 +194,18 @@ func CalcSize(format string) (int, []int, error) {
 	return sum, argCount, nil
 }
 
+func tokenSplit(fmt string) []string {
+	tokens := []string{}
+	for i := 0; i < len(fmt); i++ {
+		if unicode.IsNumber(rune(fmt[i])) {
+			tokens = append(tokens, string(fmt[i:i+2]))
+			i++
+		} else {
+			tokens = append(tokens, string(fmt[i]))
+		}
 	}
+	return tokens
+}
 
 var tokenMap = map[rune]int{
 	'c': CHAR,
