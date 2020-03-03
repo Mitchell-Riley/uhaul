@@ -168,7 +168,7 @@ func CalcSize(format string) (int, []int, error) {
 	sum := 0
 	argCount := []int{}
 	for i := 0; i < len(format); i++ {
-		typeSize := mapType(rune(format[i]))
+		typeSize := tokenMap[rune(format[i])]
 		sum += typeSize
 		argCount = append(argCount, typeSize)
 
@@ -194,37 +194,21 @@ func CalcSize(format string) (int, []int, error) {
 	return sum, argCount, nil
 }
 
-func mapType(r rune) int {
-	switch r {
-	case 'c':
-		return CHAR
-	case 'b':
-		return SCHAR
-	case 'B':
-		return UCHAR
-	case '?':
-		return BOOL
-	case 'h':
-		return SHORT
-	case 'H':
-		return USHORT
-	case 'i':
-		return INT
-	case 'I':
-		return UINT
-	case 'l':
-		return LONG
-	case 'L':
-		return ULONG
-	case 'q':
-		return LONGLONG
-	case 'Q':
-		return ULONGLONG
-	case 'f':
-		return FLOAT
-	case 'd':
-		return DOUBLE
 	}
 
-	return -1
+var tokenMap = map[rune]int{
+	'c': CHAR,
+	'b': SCHAR,
+	'B': UCHAR,
+	'?': BOOL,
+	'h': SHORT,
+	'H': USHORT,
+	'i': INT,
+	'I': UINT,
+	'l': LONG,
+	'L': ULONG,
+	'q': LONGLONG,
+	'Q': ULONGLONG,
+	'f': FLOAT,
+	'd': DOUBLE,
 }
